@@ -32,6 +32,7 @@ export class RoomNotificationState extends NotificationState implements IDestroy
         this.room.on("Room.timeline", this.handleRoomEventUpdate);
         this.room.on("Room.redaction", this.handleRoomEventUpdate);
         this.room.on("Room.myMembership", this.handleMembershipUpdate);
+        this.room.on("Room.accountData", this.handleRoomAccountDataUpdate)
         MatrixClientPeg.get().on("Event.decrypted", this.handleRoomEventUpdate);
         MatrixClientPeg.get().on("accountData", this.handleAccountDataUpdate);
         this.updateNotificationState();
@@ -47,6 +48,7 @@ export class RoomNotificationState extends NotificationState implements IDestroy
         this.room.removeListener("Room.timeline", this.handleRoomEventUpdate);
         this.room.removeListener("Room.redaction", this.handleRoomEventUpdate);
         this.room.removeListener("Room.myMembership", this.handleMembershipUpdate);
+        this.room.removeListener("Room.accountData", this.handleRoomAccountDataUpdate);
         if (MatrixClientPeg.get()) {
             MatrixClientPeg.get().removeListener("Event.decrypted", this.handleRoomEventUpdate);
             MatrixClientPeg.get().removeListener("accountData", this.handleAccountDataUpdate);
@@ -74,6 +76,10 @@ export class RoomNotificationState extends NotificationState implements IDestroy
         if (ev.getType() === "m.push_rules") {
             this.updateNotificationState();
         }
+    };
+
+    private handleRoomAccountDataUpdate = (ev: MatrixEvent) => {
+        this.updateNotificationState();
     };
 
     private updateNotificationState() {
@@ -110,13 +116,21 @@ export class RoomNotificationState extends NotificationState implements IDestroy
                 this._count = trueCount;
                 this._symbol = null; // symbol calculated by component
             } else {
-                // We don't have any notified messages, but we might have unread messages. Let's
-                // find out.
-                const hasUnread = Unread.doesRoomHaveUnreadMessages(this.room);
-                if (hasUnread) {
-                    this._color = NotificationColor.Bold;
+                // it is marked as unread?
+                const isMarkedUnread = this.room.getAccountData('com.famedly.marked_unread')?.getContent()?.unread
+
+                if (isMarkedUnread) {
+                    this._color = NotificationColor.Red;
                 } else {
-                    this._color = NotificationColor.None;
+                    // We don't have any notified messages, but we might have unread messages. Let's
+                    // find out.
+                    const hasUnread = Unread.doesRoomHaveUnreadMessages(this.room);
+
+                    if (hasUnread) {
+                        this._color = NotificationColor.Bold;
+                    } else {
+                        this._color = NotificationColor.None;
+                    }
                 }
 
                 // no symbol or count for this state
