@@ -143,3 +143,19 @@ function guessDMRoomTargetId(room: Room, myUserId: string): string {
     if (oldestUser === undefined) return myUserId;
     return oldestUser.userId;
 }
+
+const UNSTABLE_MSC2867_KEY = 'com.famedly.marked_unread';
+
+export function isRoomMarkedAsUnread(room: Room): boolean {
+    return !!room.getAccountData(UNSTABLE_MSC2867_KEY)?.getContent()?.unread;
+}
+
+export async function setRoomMarkedAsUnread(room: Room, value: boolean = true): Promise<void> {
+    await MatrixClientPeg.get().setRoomAccountData(
+        room.roomId,
+        UNSTABLE_MSC2867_KEY,
+        {
+            unread: value,
+        },
+    );
+}
